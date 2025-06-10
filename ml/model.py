@@ -1,26 +1,58 @@
 import pickle
 from sklearn.metrics import fbeta_score, precision_score, recall_score
+from sklearn.ensemble import AdaBoostClassifier
 from ml.data import process_data
-# TODO: add necessary import
+import joblib
 
 # Optional: implement hyperparameter tuning.
 def train_model(X_train, y_train):
     """
-    Trains a machine learning model and returns it.
-
+    Trains an AdaBoost model (with optional hyperparameter tuning).
+    
     Inputs
     ------
     X_train : np.array
         Training data.
     y_train : np.array
         Labels.
+    use_gridsearch : bool
+        Whether to perform GridSearchCV for hyperparameter tuning.
+
     Returns
     -------
-    model
-        Trained machine learning model.
+    model : AdaBoostClassifier
+        Trained model.
     """
-    # TODO: implement the function
-    pass
+    if use_gridsearch:
+        param_grid = {
+            'n_estimators': [50, 100, 200],
+            'learning_rate': [0.01, 0.1, 1.0],
+            'base_estimator': [
+                DecisionTreeClassifier(max_depth=1),
+                DecisionTreeClassifier(max_depth=2)
+            ]
+        }
+        ada = AdaBoostClassifier(random_state=42)
+        grid_search = GridSearchCV(
+            estimator=ada,
+            param_grid=param_grid,
+            cv=5,
+            scoring='f1_weighted',
+            n_jobs=-1,
+        )
+        grid_search.fit(X_train, y_train)
+        print("Best parameters:", grid_search.best_params_)
+        print("Best F1 score:", grid_search.best_score_)
+        model = grid_search.best_estimator_
+    else:
+        model = AdaBoostClassifier(
+            base_estimator=DecisionTreeClassifier(max_depth=1),
+            n_estimators=50,
+            learning_rate=1.0,
+            random_state=42
+        )
+        model.fit(X_train, y_train)
+    return model
 
 
 def compute_model_metrics(y, preds):
@@ -50,7 +82,7 @@ def inference(model, X):
 
     Inputs
     ------
-    model : ???
+    model : AdaBoostClassifier
         Trained machine learning model.
     X : np.array
         Data used for prediction.
@@ -59,26 +91,25 @@ def inference(model, X):
     preds : np.array
         Predictions from the model.
     """
-    # TODO: implement the function
-    pass
+    preds = model.predict(X)
+    return preds
 
 def save_model(model, path):
     """ Serializes model to a file.
 
     Inputs
     ------
-    model
+    model: 
         Trained machine learning model or OneHotEncoder.
     path : str
         Path to save pickle file.
     """
-    # TODO: implement the function
-    pass
+    joblib.dump(model, path)
+
 
 def load_model(path):
     """ Loads pickle file from `path` and returns it."""
-    # TODO: implement the function
-    pass
+    return joblib.load(path)
 
 
 def performance_on_categorical_slice(
@@ -107,7 +138,7 @@ def performance_on_categorical_slice(
         Trained sklearn OneHotEncoder, only used if training=False.
     lb : sklearn.preprocessing._label.LabelBinarizer
         Trained sklearn LabelBinarizer, only used if training=False.
-    model : ???
+    model : AdaBoostClassifier
         Model used for the task.
 
     Returns
@@ -118,11 +149,15 @@ def performance_on_categorical_slice(
 
     """
     # TODO: implement the function
+    
     X_slice, y_slice, _, _ = process_data(
-        # your code here
-        # for input data, use data in column given as "column_name", with the slice_value 
-        # use training = False
+        data[data[column_name] == slice_value], 
+        categorical_features=categorical_features,
+        label=label,
+        training=False,
+        encoder=encoder,
+        lb=lb
     )
-    preds = None # your code here to get prediction on X_slice using the inference function
+    preds = inference(model, X_slice) # your code here to get prediction on X_slice using the inference function
     precision, recall, fbeta = compute_model_metrics(y_slice, preds)
     return precision, recall, fbeta
