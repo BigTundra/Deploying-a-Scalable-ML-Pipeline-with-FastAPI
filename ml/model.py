@@ -1,11 +1,13 @@
 import pickle
 from sklearn.metrics import fbeta_score, precision_score, recall_score
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
 from ml.data import process_data
 import joblib
 
 # Optional: implement hyperparameter tuning.
-def train_model(X_train, y_train):
+def train_model(X_train, y_train, use_gridsearch=False):
     """
     Trains an AdaBoost model (with optional hyperparameter tuning).
     
@@ -27,7 +29,7 @@ def train_model(X_train, y_train):
         param_grid = {
             'n_estimators': [50, 100, 200],
             'learning_rate': [0.01, 0.1, 1.0],
-            'base_estimator': [
+            'estimator': [
                 DecisionTreeClassifier(max_depth=1),
                 DecisionTreeClassifier(max_depth=2)
             ]
@@ -46,10 +48,9 @@ def train_model(X_train, y_train):
         model = grid_search.best_estimator_
     else:
         model = AdaBoostClassifier(
-            base_estimator=DecisionTreeClassifier(max_depth=1),
-            n_estimators=50,
+            estimator=DecisionTreeClassifier(max_depth=2),
+            n_estimators=100,
             learning_rate=1.0,
-            random_state=42
         )
         model.fit(X_train, y_train)
     return model
